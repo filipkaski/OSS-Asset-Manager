@@ -1,0 +1,34 @@
+{
+  "name": "oss-asset-manager",
+  "version": "1.0.0",
+  "description": "System ITAM (IT Asset Management) dedykowany dla środowisk biurowo-produkcyjnych. Aplikacja umożliwia ewidencję sprzętu IT (terminale, telefony, laptopy) z precyzyjnym przypisaniem do stref operacyjnych (np. Finishing, Despatch) oraz pełną kontrolą nad nazewnictwem i numeracją seryjną zasobów.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/filipkaski/OSS-Asset-Manager.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/filipkaski/OSS-Asset-Manager/issues"
+  },
+  "homepage": "https://github.com/filipkaski/OSS-Asset-Manager#readme",
+  "dependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.9",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
