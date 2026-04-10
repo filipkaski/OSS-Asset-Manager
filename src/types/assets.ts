@@ -7,7 +7,7 @@ export type AssetStatus =
   | 'Active - Spare' | 'Retired' | 'Lost' 
   | 'Stolen' | 'Disposed';
 
-export type AssetCategory = 'Mobile Phone' | 'Laptop' | 'Desktop' | 'Printer' | 'Terminal';
+export type AssetCategory = 'Mobile Phone' | 'Laptop' | 'Desktop' | 'Printer';
 
 export interface ITAsset {
   id: string;                // Systemowe ID (np. ASM0849628)
@@ -34,6 +34,7 @@ export interface ITAsset {
   building?: string;         // Dodatkowe pole ze screena drukarki
   room?: string;             // np. Despatch office
   
-  status: AssetStatus;       
+  status: AssetStatus;
   lastUpdate: Date;
+  notes?: string;
 }

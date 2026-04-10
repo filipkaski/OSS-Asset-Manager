@@ -26,7 +26,7 @@ export const generateAssetName = (asset: Partial<ITAsset>): string => {
     return `W${serialNumber}`; // Desktopy zawsze z przedrostkiem W
   }
 
-  if (category === 'Mobile Phone' || category === 'Terminal') {
+  if (category === 'Mobile Phone') {
     return asset.assetTag || `M-${serialNumber}`; // Telefony używają Tagu M00...
   }
 

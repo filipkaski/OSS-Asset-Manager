@@ -1,9 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import AssetTable from './components/AssetTable'; // Sprawdź czy litera 'c' jest mała
+import { BrowserRouter } from 'react-router-dom';
+import { AssetsProvider } from './context/AssetsContext';
+import App from './App';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AssetTable />
+    <BrowserRouter>
+      <AssetsProvider>
+        <App />
+      </AssetsProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
