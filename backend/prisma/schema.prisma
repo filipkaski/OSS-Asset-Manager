@@ -1,0 +1,104 @@
+// Prisma schema – OSS Asset Manager
+// Baza: SQLite (łatwy start, można zmienić na PostgreSQL zmieniając provider + DATABASE_URL)
+// UWAGA: SQLite nie obsługuje enumów – używamy String z walidacją po stronie API
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// USERS – pracownicy którym mogą być przypisane assety
+// ---------------------------------------------------------------------------
+model User {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  email       String?   @unique
+  department  String?
+  createdAt   DateTime  @default(now())
+
+  assets      Asset[]
+  changeLogs  ChangeLog[]
+}
+
+// ---------------------------------------------------------------------------
+// ASSETS – główna tabela urządzeń IT
+// category:  "Mobile Phone" | "Laptop" | "Desktop" | "Printer"
+// status:    "Active" | "Active - Spare" | "In Stock" | "In Stock - Low Usage" | "Retired" | "Lost" | "Stolen" | "Disposed"
+// zone:      "Finishing" | "Coating" | "Mixing" | "Despatch" | "Receiving" | "Office" | "Security Gate" | "R&D"
+// ---------------------------------------------------------------------------
+model Asset {
+  id            String    @id
+  assetName     String
+  assetTag      String    @unique
+  serialNumber  String    @unique
+
+  imeiNumber    String?
+  biosGuid      String?
+  queueName     String?
+
+  manufacturer  String
+  modelName     String
+  modelNumber   String
+
+  category      String
+  deviceRole    String
+
+  assignedTo    String
+  userId        Int?
+  user          User?     @relation(fields: [userId], references: [id])
+
+  location      String
+  zone          String
+  building      String?
+  room          String?
+
+  status        String
+  lastUpdate    DateTime  @default(now()) @updatedAt
+  createdAt     DateTime  @default(now())
+
+  notes         Note[]
+  changeLogs    ChangeLog[]
+
+  @@index([category])
+  @@index([status])
+  @@index([zone])
+  @@index([assignedTo])
+}
+
+// ---------------------------------------------------------------------------
+// NOTES
+// ---------------------------------------------------------------------------
+model Note {
+  id        Int       @id @default(autoincrement())
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  assetId   String
+  asset     Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// CHANGE_LOG
+// ---------------------------------------------------------------------------
+model ChangeLog {
+  id          Int       @id @default(autoincrement())
+  field       String
+  oldValue    String?
+  newValue    String?
+  changedAt   DateTime  @default(now())
+
+  assetId     String
+  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  changedById Int?
+  changedBy   User?     @relation(fields: [changedById], references: [id])
+
+  @@index([assetId])
+  @@index([changedAt])
+}

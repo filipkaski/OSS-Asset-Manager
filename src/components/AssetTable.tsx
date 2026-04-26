@@ -3,13 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAssets } from '../context/AssetsContext';
 import { AssetCategory, AssetStatus, OperationalZone } from '../types/assets';
 import { C, STATUS_STYLE, ZONE_COLORS, CATEGORY_CONFIG } from '../theme';
+import NewAssetModal from './NewAssetModal';
 
 const PAGE_SIZE = 20;
 
+const CSV_API = 'http://localhost:3001/api/assets';
+
 const AssetTable: React.FC = () => {
-  const { assets } = useAssets();
+  const { assets, loading, error, addAsset, reload } = useAssets();
   const navigate = useNavigate();
 
+  const [showModal, setShowModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
   const [search, setSearch]             = useState('');
   const [catFilter, setCatFilter]       = useState<AssetCategory | 'all'>('all');
   const [fStatus, setFStatus]           = useState('all');
@@ -56,6 +62,30 @@ const AssetTable: React.FC = () => {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const pageAssets = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`${CSV_API}/import/csv`, { method: 'POST', body: form });
+      const json = await res.json();
+      setImportResult({ created: json.created ?? 0, updated: json.updated ?? 0, errors: json.errors ?? [] });
+      reload();
+    } catch {
+      setImportResult({ created: 0, updated: 0, errors: ['Błąd połączenia z API'] });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleExport = () => {
+    window.open(`${CSV_API}/export/csv`, '_blank');
+  };
+
   const mkSetter = (fn: (v: string) => void) => (e: React.ChangeEvent<HTMLSelectElement>) => {
     fn(e.target.value); setPage(1);
   };
@@ -72,12 +102,68 @@ const AssetTable: React.FC = () => {
     minWidth: '140px',
   });
 
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', color: C.textSub, fontSize: '15px' }}>
+      Ładowanie assetów…
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '40vh', gap: '8px' }}>
+      <div style={{ color: '#f87171', fontSize: '15px' }}>Błąd połączenia z API</div>
+      <div style={{ color: C.textMuted, fontSize: '13px' }}>{error}</div>
+    </div>
+  );
+
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px' }}>
+      {showModal && <NewAssetModal onClose={() => setShowModal(false)} onSave={addAsset} />}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ color: C.text, margin: 0, fontSize: '1.35em' }}>Ewidencja zasobów IT</h2>
-        <span style={{ color: C.textMuted, fontSize: '0.82em' }}>{assets.length} urządzeń łącznie</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: C.textMuted, fontSize: '0.82em', marginRight: '4px' }}>{assets.length} urządzeń łącznie</span>
+
+          {/* Eksport CSV */}
+          <button onClick={handleExport} style={btnOutline} title="Pobierz wszystkie assety jako CSV">
+            ↓ Eksport CSV
+          </button>
+
+          {/* Import CSV */}
+          <label style={{ ...btnOutline, cursor: importing ? 'wait' : 'pointer', opacity: importing ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '4px' }}
+            title="Wgraj plik CSV (ten sam format co eksport)">
+            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImport} disabled={importing} />
+            {importing ? '⏳ Importowanie…' : '↑ Import CSV'}
+          </label>
+
+          <button onClick={() => setShowModal(true)} style={btnPrimary}>
+            + Nowy asset
+          </button>
+        </div>
       </div>
+
+      {/* Wynik importu */}
+      {importResult && (
+        <div style={{
+          backgroundColor: importResult.errors.length > 0 ? '#2a1a0a' : '#0a2a1a',
+          border: `1px solid ${importResult.errors.length > 0 ? '#92400e' : '#065f46'}`,
+          borderRadius: '8px', padding: '12px 16px', marginBottom: '14px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px',
+        }}>
+          <div>
+            <span style={{ color: importResult.errors.length > 0 ? '#fbbf24' : '#4ade80', fontSize: '0.87em', fontWeight: 600 }}>
+              Import zakończony: {importResult.created} dodanych, {importResult.updated} zaktualizowanych
+            </span>
+            {importResult.errors.length > 0 && (
+              <ul style={{ margin: '6px 0 0', padding: '0 0 0 18px', color: '#f87171', fontSize: '0.78em' }}>
+                {importResult.errors.slice(0, 5).map((e, i) => <li key={i}>{e}</li>)}
+                {importResult.errors.length > 5 && <li>…i {importResult.errors.length - 5} więcej</li>}
+              </ul>
+            )}
+          </div>
+          <button onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: '1em' }}>✕</button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
@@ -216,8 +302,10 @@ const AssetTable: React.FC = () => {
   );
 };
 
-const thStyle: React.CSSProperties = { padding: '10px 14px', fontWeight: 600, color: C.textSub, fontSize: '0.71em', textTransform: 'uppercase', letterSpacing: '0.7px', textAlign: 'left' };
-const tdStyle: React.CSSProperties = { padding: '12px 14px', verticalAlign: 'middle' };
-const pgBtn:   React.CSSProperties = { padding: '5px 10px', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', backgroundColor: 'transparent', color: C.textSub, fontSize: '0.86em' };
+const thStyle:    React.CSSProperties = { padding: '10px 14px', fontWeight: 600, color: C.textSub, fontSize: '0.71em', textTransform: 'uppercase', letterSpacing: '0.7px', textAlign: 'left' };
+const tdStyle:    React.CSSProperties = { padding: '12px 14px', verticalAlign: 'middle' };
+const pgBtn:      React.CSSProperties = { padding: '5px 10px', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', backgroundColor: 'transparent', color: C.textSub, fontSize: '0.86em' };
+const btnOutline: React.CSSProperties = { padding: '7px 14px', backgroundColor: 'transparent', color: C.textSub, border: `1px solid ${C.border}`, borderRadius: '7px', cursor: 'pointer', fontSize: '0.82em', fontWeight: 500 };
+const btnPrimary: React.CSSProperties = { padding: '7px 14px', backgroundColor: C.accent, color: '#fff', border: 'none', borderRadius: '7px', cursor: 'pointer', fontSize: '0.85em', fontWeight: 600 };
 
 export default AssetTable;
